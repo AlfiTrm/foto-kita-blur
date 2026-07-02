@@ -5,6 +5,7 @@ import { GestureStatus } from './components/GestureStatus'
 import { PhotoPreview } from './components/PhotoPreview'
 import { useCamera } from './hooks/useCamera'
 import { useGestureDetection } from './hooks/useGestureDetection'
+import { useStablePeace } from './hooks/useStablePeace'
 
 function App() {
   const [selectedTool, setSelectedTool] = useState<'camera' | 'filter' | 'frame'>(
@@ -16,6 +17,7 @@ function App() {
     videoRef,
     camera.permissionState === 'granted' && camera.error === null,
   )
+  const isBlurred = useStablePeace(gesture.isPeaceDetected)
 
   return (
     <main className="min-h-screen bg-[#f5f6fa] px-4 py-5 text-[#49516a] sm:px-6">
@@ -30,6 +32,7 @@ function App() {
 
         <CameraView
           error={camera.error ?? gesture.gestureError}
+          isBlurred={isBlurred}
           isLoading={camera.isLoading || gesture.isModelLoading}
           onCapture={() => undefined}
           onRetry={() => {

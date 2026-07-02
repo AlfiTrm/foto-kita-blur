@@ -3,6 +3,7 @@ import type { CameraPermissionState } from '../types/camera'
 
 type CameraViewProps = {
   error: string | null
+  isBlurred: boolean
   isLoading: boolean
   onCapture: () => void
   onRetry: () => void
@@ -29,6 +30,7 @@ function GhostButton({
 
 export function CameraView({
   error,
+  isBlurred,
   isLoading,
   onCapture,
   onRetry,
@@ -44,9 +46,16 @@ export function CameraView({
         autoPlay
         muted
         playsInline
-        className="absolute inset-0 h-full w-full scale-x-[-1] object-cover"
+        className={`absolute inset-0 h-full w-full scale-x-[-1] object-cover transition-[filter] duration-300 ease-out ${
+          isBlurred ? 'blur-md' : 'blur-0'
+        }`}
       />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(252,253,255,0.08)_0%,rgba(10,16,32,0.12)_100%)]" />
+      <div
+        className={`absolute inset-0 bg-white/8 transition-opacity duration-300 ease-out ${
+          isBlurred ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
 
       {showOverlay ? (
         <div className="absolute inset-0 flex items-center justify-center bg-[rgba(25,31,43,0.24)] px-6">
