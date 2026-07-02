@@ -1,13 +1,16 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { CameraControls } from './components/CameraControls'
 import { CameraView } from './components/CameraView'
 import { GestureStatus } from './components/GestureStatus'
 import { PhotoPreview } from './components/PhotoPreview'
+import { useCamera } from './hooks/useCamera'
 
 function App() {
   const [selectedTool, setSelectedTool] = useState<'camera' | 'filter' | 'frame'>(
     'camera',
   )
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const camera = useCamera(videoRef)
 
   return (
     <main className="min-h-screen bg-[#f5f6fa] px-4 py-5 text-[#49516a] sm:px-6">
@@ -17,7 +20,16 @@ function App() {
           <PhotoPreview />
         </div>
 
-        <CameraView onCapture={() => undefined} />
+        <CameraView
+          error={camera.error}
+          isLoading={camera.isLoading}
+          onCapture={() => undefined}
+          onRetry={() => {
+            void camera.startCamera()
+          }}
+          permissionState={camera.permissionState}
+          videoRef={videoRef}
+        />
         <CameraControls
           selectedTool={selectedTool}
           onSelectTool={setSelectedTool}

@@ -6,4 +6,6 @@ export type CameraState = {
   error: string | null
   isLoading: boolean
   isSupported: boolean
+  startCamera: () => Promise<void>
+  stopCamera: () => void
 }

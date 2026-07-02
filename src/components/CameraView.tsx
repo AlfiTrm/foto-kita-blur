@@ -1,7 +1,13 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, RefObject } from 'react'
+import type { CameraPermissionState } from '../types/camera'
 
 type CameraViewProps = {
+  error: string | null
+  isLoading: boolean
   onCapture: () => void
+  onRetry: () => void
+  permissionState: CameraPermissionState
+  videoRef: RefObject<HTMLVideoElement | null>
 }
 
 function GhostButton({
@@ -21,20 +27,48 @@ function GhostButton({
   )
 }
 
-export function CameraView({ onCapture }: CameraViewProps) {
+export function CameraView({
+  error,
+  isLoading,
+  onCapture,
+  onRetry,
+  permissionState,
+  videoRef,
+}: CameraViewProps) {
+  const showOverlay = isLoading || error !== null
+
   return (
     <section className="relative mx-auto aspect-[16/10] w-full max-w-4xl overflow-hidden rounded-[28px] border border-[#e8e8ee] bg-[#dfe5ef] shadow-[0_24px_70px_rgba(15,23,42,0.12)]">
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(252,253,255,0.12)_0%,rgba(10,16,32,0.06)_100%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(255,255,255,0.7)_0%,rgba(255,255,255,0)_28%),linear-gradient(180deg,#cad8ec_0%,#b1c1d9_38%,#8ba0bb_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-[48%] bg-[linear-gradient(180deg,rgba(115,141,115,0)_0%,rgba(95,120,97,0.42)_30%,rgba(68,89,72,0.78)_100%)]" />
-      <div className="absolute inset-x-10 bottom-0 h-[26%] rounded-t-[50%] bg-[linear-gradient(180deg,rgba(58,83,64,0.35)_0%,rgba(42,61,47,0.82)_100%)] blur-[2px]" />
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className="absolute inset-0 h-full w-full scale-x-[-1] object-cover"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(252,253,255,0.08)_0%,rgba(10,16,32,0.12)_100%)]" />
 
-      <div className="absolute left-1/2 top-[54%] h-[58%] w-[28%] -translate-x-1/2 -translate-y-1/2 rounded-[40px] bg-[radial-gradient(circle_at_50%_18%,#3a322e_0%,#1f1b1a_64%,#181516_100%)] shadow-[0_16px_50px_rgba(0,0,0,0.22)]" />
-      <div className="absolute left-1/2 top-[61%] h-[36%] w-[26%] -translate-x-1/2 -translate-y-1/2 rounded-[32px] bg-[linear-gradient(180deg,#b6b2b3_0%,#a6a0a0_30%,#8a8586_100%)]" />
-      <div className="absolute left-1/2 top-[42%] h-[26%] w-[18%] -translate-x-1/2 -translate-y-1/2 rounded-[999px] bg-[radial-gradient(circle_at_50%_34%,#f6dec5_0%,#e4bc97_58%,#c89467_100%)] shadow-[0_10px_20px_rgba(0,0,0,0.12)]" />
-      <div className="absolute left-1/2 top-[41%] h-[19%] w-[9.5%] -translate-x-[108%] -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_50%_30%,#f4ddc5_0%,#dfb892_62%,#c79066_100%)]" />
-      <div className="absolute left-1/2 top-[41%] h-[19%] w-[9.5%] translate-x-[8%] -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_50%_30%,#f4ddc5_0%,#dfb892_62%,#c79066_100%)]" />
-      <div className="absolute left-1/2 top-[30%] h-[22%] w-[22%] -translate-x-1/2 rounded-[999px] bg-[radial-gradient(circle_at_50%_38%,#272120_0%,#1b1718_75%,#161214_100%)]" />
+      {showOverlay ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-[rgba(25,31,43,0.24)] px-6">
+          <div className="w-full max-w-xs rounded-[24px] bg-white/86 p-5 text-center text-[#4e5569] shadow-[0_18px_50px_rgba(15,23,42,0.16)] backdrop-blur-md">
+            <div className="mx-auto mb-4 h-2 w-10 rounded-full bg-[#d8ddeb]" />
+            <p className="text-sm font-medium">
+              {isLoading
+                ? 'Opening camera...'
+                : error ?? 'Camera is unavailable.'}
+            </p>
+            {permissionState === 'denied' || error ? (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="mt-4 rounded-full bg-[#4d556c] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#3f465b]"
+              >
+                Retry
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4">
         <div className="h-2 w-2 rounded-full bg-white/70" />
