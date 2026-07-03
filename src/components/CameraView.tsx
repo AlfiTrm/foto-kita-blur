@@ -1,27 +1,33 @@
-import type { ReactNode, RefObject } from 'react'
+import type { ButtonHTMLAttributes, ReactNode, RefObject } from 'react'
 import type { CameraPermissionState } from '../types/camera'
 
 type CameraViewProps = {
+  captureDisabled: boolean
   error: string | null
   isBlurred: boolean
   isLoading: boolean
   onCapture: () => void
+  onDownload: () => void
+  onRetake: () => void
   onRetry: () => void
   permissionState: CameraPermissionState
+  photoDataUrl: string | null
   videoRef: RefObject<HTMLVideoElement | null>
 }
 
 function GhostButton({
   children,
   className = '',
+  ...props
 }: {
   children: ReactNode
   className?: string
-}) {
+} & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       type="button"
-      className={`grid size-12 place-items-center rounded-full border border-white/35 bg-white/12 text-white backdrop-blur-md transition hover:bg-white/18 ${className}`}
+      className={`grid size-12 place-items-center rounded-full border border-white/35 bg-white/12 text-white backdrop-blur-md transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      {...props}
     >
       {children}
     </button>
@@ -29,31 +35,44 @@ function GhostButton({
 }
 
 export function CameraView({
+  captureDisabled,
   error,
   isBlurred,
   isLoading,
   onCapture,
+  onDownload,
+  onRetake,
   onRetry,
   permissionState,
+  photoDataUrl,
   videoRef,
 }: CameraViewProps) {
-  const showOverlay = isLoading || error !== null
+  const showOverlay = photoDataUrl === null && (isLoading || error !== null)
 
   return (
     <section className="relative mx-auto aspect-[16/10] w-full max-w-4xl overflow-hidden rounded-[28px] border border-[#e8e8ee] bg-[#dfe5ef] shadow-[0_24px_70px_rgba(15,23,42,0.12)]">
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        playsInline
-        className={`absolute inset-0 h-full w-full scale-x-[-1] object-cover transition-[filter] duration-300 ease-out ${
-          isBlurred ? 'blur-md' : 'blur-0'
-        }`}
-      />
+      {photoDataUrl ? (
+        <img
+          src={photoDataUrl}
+          alt="Captured result"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : (
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          className={`absolute inset-0 h-full w-full scale-x-[-1] object-cover transition-[filter] duration-300 ease-out ${
+            isBlurred ? 'blur-md' : 'blur-0'
+          }`}
+        />
+      )}
+
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(252,253,255,0.08)_0%,rgba(10,16,32,0.12)_100%)]" />
       <div
         className={`absolute inset-0 bg-white/8 transition-opacity duration-300 ease-out ${
-          isBlurred ? 'opacity-100' : 'opacity-0'
+          isBlurred && photoDataUrl === null ? 'opacity-100' : 'opacity-0'
         }`}
       />
 
@@ -94,48 +113,99 @@ export function CameraView({
       </div>
 
       <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-5">
-        <GhostButton>
-          <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
-            <path
-              d="M7 9.5v5c0 1.933 1.567 3.5 3.5 3.5S14 16.433 14 14.5v-5"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-            />
-            <path
-              d="M10.5 6.5A2.5 2.5 0 0 1 13 9v5.5a2.5 2.5 0 0 1-5 0V9a2.5 2.5 0 0 1 2.5-2.5Z"
-              stroke="currentColor"
-              strokeWidth="1.7"
-            />
-          </svg>
-        </GhostButton>
+        {photoDataUrl ? (
+          <>
+            <GhostButton onClick={onRetake} aria-label="Retake photo">
+              <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
+                <path
+                  d="M12 7.5a4.5 4.5 0 1 0 4.5 4.5"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M16.5 7.5H12V3"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </GhostButton>
 
-        <button
-          type="button"
-          onClick={onCapture}
-          className="grid size-16 place-items-center rounded-full border border-white/55 bg-white/16 backdrop-blur-md transition hover:bg-white/22"
-          aria-label="Capture photo"
-        >
-          <span className="grid size-12 place-items-center rounded-full border border-white/80 bg-white/92" />
-        </button>
+            <button
+              type="button"
+              onClick={onDownload}
+              className="grid size-16 place-items-center rounded-full border border-white/55 bg-white/16 backdrop-blur-md transition hover:bg-white/22"
+              aria-label="Download photo"
+            >
+              <span className="grid size-12 place-items-center rounded-full border border-white/80 bg-white/92 text-[#49516a]">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="size-5"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M12 5v9m0 0 3.5-3.5M12 14l-3.5-3.5M6.5 18.5h11"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+            </button>
 
-        <GhostButton>
-          <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
-            <path
-              d="M12 7.5a4.5 4.5 0 1 0 4.5 4.5"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-            />
-            <path
-              d="M16.5 7.5H12V3"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </GhostButton>
+            <div className="size-12" />
+          </>
+        ) : (
+          <>
+            <GhostButton disabled={captureDisabled}>
+              <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
+                <path
+                  d="M7 9.5v5c0 1.933 1.567 3.5 3.5 3.5S14 16.433 14 14.5v-5"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M10.5 6.5A2.5 2.5 0 0 1 13 9v5.5a2.5 2.5 0 0 1-5 0V9a2.5 2.5 0 0 1 2.5-2.5Z"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                />
+              </svg>
+            </GhostButton>
+
+            <button
+              type="button"
+              onClick={onCapture}
+              disabled={captureDisabled}
+              className="grid size-16 place-items-center rounded-full border border-white/55 bg-white/16 backdrop-blur-md transition hover:bg-white/22 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Capture photo"
+            >
+              <span className="grid size-12 place-items-center rounded-full border border-white/80 bg-white/92" />
+            </button>
+
+            <GhostButton disabled={captureDisabled}>
+              <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
+                <path
+                  d="M12 7.5a4.5 4.5 0 1 0 4.5 4.5"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M16.5 7.5H12V3"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </GhostButton>
+          </>
+        )}
       </div>
     </section>
   )

@@ -6,18 +6,43 @@ import { PhotoPreview } from './components/PhotoPreview'
 import { useCamera } from './hooks/useCamera'
 import { useGestureDetection } from './hooks/useGestureDetection'
 import { useStablePeace } from './hooks/useStablePeace'
+import { capturePhoto, downloadPhoto } from './utils/capturePhoto'
 
 function App() {
+  const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null)
   const [selectedTool, setSelectedTool] = useState<'camera' | 'filter' | 'frame'>(
     'camera',
   )
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const camera = useCamera(videoRef)
   const gesture = useGestureDetection(
     videoRef,
-    camera.permissionState === 'granted' && camera.error === null,
+    photoDataUrl === null &&
+      camera.permissionState === 'granted' &&
+      camera.error === null,
   )
   const isBlurred = useStablePeace(gesture.isPeaceDetected)
+
+  const handleCapture = () => {
+    const video = videoRef.current
+
+    if (!video) {
+      return
+    }
+
+    if (!canvasRef.current) {
+      canvasRef.current = document.createElement('canvas')
+    }
+
+    const nextPhotoDataUrl = capturePhoto({
+      canvas: canvasRef.current,
+      isBlurred,
+      video,
+    })
+
+    setPhotoDataUrl(nextPhotoDataUrl)
+  }
 
   return (
     <main className="min-h-screen bg-[#f5f6fa] px-4 py-5 text-[#49516a] sm:px-6">
@@ -27,18 +52,32 @@ function App() {
             gestureName={gesture.gestureName}
             isPeaceDetected={gesture.isPeaceDetected}
           />
-          <PhotoPreview />
+          <PhotoPreview photoDataUrl={photoDataUrl} />
         </div>
 
         <CameraView
+          captureDisabled={
+            photoDataUrl !== null ||
+            camera.permissionState !== 'granted' ||
+            camera.isLoading
+          }
           error={camera.error ?? gesture.gestureError}
           isBlurred={isBlurred}
           isLoading={camera.isLoading || gesture.isModelLoading}
-          onCapture={() => undefined}
+          onCapture={handleCapture}
+          onDownload={() => {
+            if (photoDataUrl) {
+              downloadPhoto(photoDataUrl)
+            }
+          }}
+          onRetake={() => {
+            setPhotoDataUrl(null)
+          }}
           onRetry={() => {
             void camera.startCamera()
           }}
           permissionState={camera.permissionState}
+          photoDataUrl={photoDataUrl}
           videoRef={videoRef}
         />
         <CameraControls
