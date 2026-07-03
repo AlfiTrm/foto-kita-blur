@@ -1,48 +1,30 @@
-import type { ButtonHTMLAttributes, ReactNode, RefObject } from 'react'
+import type { RefObject } from 'react'
 import type { CameraPermissionState } from '../types/camera'
+import type { FilterPresetId, FramePresetId } from '../types/visual'
+import {
+  getPreviewFilterStyle,
+  renderFrameOverlay,
+} from '../utils/visualOptions'
 
 type CameraViewProps = {
-  captureDisabled: boolean
   error: string | null
+  frameId: FramePresetId
   isBlurred: boolean
   isLoading: boolean
-  onCapture: () => void
-  onDownload: () => void
-  onRetake: () => void
   onRetry: () => void
+  photoFilterId: FilterPresetId
   permissionState: CameraPermissionState
   photoDataUrl: string | null
   videoRef: RefObject<HTMLVideoElement | null>
 }
 
-function GhostButton({
-  children,
-  className = '',
-  ...props
-}: {
-  children: ReactNode
-  className?: string
-} & ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      type="button"
-      className={`grid size-12 place-items-center rounded-full border border-white/35 bg-white/12 text-white backdrop-blur-md transition hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
-      {...props}
-    >
-      {children}
-    </button>
-  )
-}
-
 export function CameraView({
-  captureDisabled,
   error,
+  frameId,
   isBlurred,
   isLoading,
-  onCapture,
-  onDownload,
-  onRetake,
   onRetry,
+  photoFilterId,
   permissionState,
   photoDataUrl,
   videoRef,
@@ -50,7 +32,7 @@ export function CameraView({
   const showOverlay = photoDataUrl === null && (isLoading || error !== null)
 
   return (
-    <section className="relative mx-auto aspect-[16/10] w-full max-w-4xl overflow-hidden rounded-[28px] border border-[#e8e8ee] bg-[#dfe5ef] shadow-[0_24px_70px_rgba(15,23,42,0.12)]">
+    <section className="relative mx-auto aspect-[16/10] w-full overflow-hidden rounded-[30px] border border-white/80 bg-[#dfe5ef] shadow-[0_28px_90px_rgba(15,23,42,0.12)]">
       {photoDataUrl ? (
         <img
           src={photoDataUrl}
@@ -63,9 +45,8 @@ export function CameraView({
           autoPlay
           muted
           playsInline
-          className={`absolute inset-0 h-full w-full scale-x-[-1] object-cover transition-[filter] duration-300 ease-out ${
-            isBlurred ? 'blur-md' : 'blur-0'
-          }`}
+          className="absolute inset-0 h-full w-full scale-x-[-1] object-cover transition-[filter] duration-300 ease-out"
+          style={getPreviewFilterStyle(photoFilterId, isBlurred)}
         />
       )}
 
@@ -75,6 +56,7 @@ export function CameraView({
           isBlurred && photoDataUrl === null ? 'opacity-100' : 'opacity-0'
         }`}
       />
+      {renderFrameOverlay(frameId)}
 
       {showOverlay ? (
         <div className="absolute inset-0 flex items-center justify-center bg-[rgba(25,31,43,0.24)] px-6">
@@ -97,116 +79,6 @@ export function CameraView({
           </div>
         </div>
       ) : null}
-
-      <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4">
-        <div className="h-2 w-2 rounded-full bg-white/70" />
-        <button
-          type="button"
-          className="grid size-9 place-items-center rounded-full bg-white/10 text-white/85 backdrop-blur-md"
-        >
-          <span className="flex flex-col gap-0.5">
-            <span className="h-0.5 w-0.5 rounded-full bg-current" />
-            <span className="h-0.5 w-0.5 rounded-full bg-current" />
-            <span className="h-0.5 w-0.5 rounded-full bg-current" />
-          </span>
-        </button>
-      </div>
-
-      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-5">
-        {photoDataUrl ? (
-          <>
-            <GhostButton onClick={onRetake} aria-label="Retake photo">
-              <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
-                <path
-                  d="M12 7.5a4.5 4.5 0 1 0 4.5 4.5"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M16.5 7.5H12V3"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </GhostButton>
-
-            <button
-              type="button"
-              onClick={onDownload}
-              className="grid size-16 place-items-center rounded-full border border-white/55 bg-white/16 backdrop-blur-md transition hover:bg-white/22"
-              aria-label="Download photo"
-            >
-              <span className="grid size-12 place-items-center rounded-full border border-white/80 bg-white/92 text-[#49516a]">
-                <svg
-                  viewBox="0 0 24 24"
-                  className="size-5"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M12 5v9m0 0 3.5-3.5M12 14l-3.5-3.5M6.5 18.5h11"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
-            </button>
-
-            <div className="size-12" />
-          </>
-        ) : (
-          <>
-            <GhostButton disabled={captureDisabled}>
-              <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
-                <path
-                  d="M7 9.5v5c0 1.933 1.567 3.5 3.5 3.5S14 16.433 14 14.5v-5"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M10.5 6.5A2.5 2.5 0 0 1 13 9v5.5a2.5 2.5 0 0 1-5 0V9a2.5 2.5 0 0 1 2.5-2.5Z"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                />
-              </svg>
-            </GhostButton>
-
-            <button
-              type="button"
-              onClick={onCapture}
-              disabled={captureDisabled}
-              className="grid size-16 place-items-center rounded-full border border-white/55 bg-white/16 backdrop-blur-md transition hover:bg-white/22 disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label="Capture photo"
-            >
-              <span className="grid size-12 place-items-center rounded-full border border-white/80 bg-white/92" />
-            </button>
-
-            <GhostButton disabled={captureDisabled}>
-              <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
-                <path
-                  d="M12 7.5a4.5 4.5 0 1 0 4.5 4.5"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M16.5 7.5H12V3"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </GhostButton>
-          </>
-        )}
-      </div>
     </section>
   )
 }
