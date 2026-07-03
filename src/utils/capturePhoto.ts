@@ -1,8 +1,13 @@
 import type { FilterPresetId, FramePresetId } from '../types/visual'
-import { getFilterStyle } from './visualOptions'
+import {
+  getFilterStyle,
+  getFrameOverlayScale,
+  getStageAspectRatio,
+} from './visualOptions'
 
 type CapturePhotoParams = {
   canvas: HTMLCanvasElement
+  frameImage?: CanvasImageSource | null
   frameId: FramePresetId
   photoFilterId: FilterPresetId
   isBlurred: boolean
@@ -11,6 +16,7 @@ type CapturePhotoParams = {
 
 export function capturePhoto({
   canvas,
+  frameImage,
   frameId,
   photoFilterId,
   isBlurred,
@@ -23,8 +29,11 @@ export function capturePhoto({
     throw new Error('Video frame is not ready for capture.')
   }
 
-  canvas.width = width
-  canvas.height = height
+  const targetAspectRatio = getStageAspectRatio(frameId)
+  const crop = getCoverCropRect(width, height, targetAspectRatio)
+
+  canvas.width = Math.round(crop.width)
+  canvas.height = Math.round(crop.height)
 
   const context = canvas.getContext('2d')
 
@@ -34,13 +43,23 @@ export function capturePhoto({
 
   context.save()
   context.filter = getFilterStyle(photoFilterId, isBlurred)
-  context.translate(width, 0)
+  context.translate(canvas.width, 0)
   context.scale(-1, 1)
-  context.drawImage(video, 0, 0, width, height)
+  context.drawImage(
+    video,
+    crop.x,
+    crop.y,
+    crop.width,
+    crop.height,
+    0,
+    0,
+    canvas.width,
+    canvas.height,
+  )
   context.filter = 'none'
   context.restore()
 
-  drawFrame(context, width, height, frameId)
+  drawFrame(context, canvas.width, canvas.height, frameId, frameImage)
 
   return canvas.toDataURL('image/jpeg', 0.92)
 }
@@ -57,46 +76,44 @@ function drawFrame(
   width: number,
   height: number,
   frameId: FramePresetId,
+  frameImage?: CanvasImageSource | null,
 ) {
-  if (frameId === 'none') {
+  if (frameId === 'none' || !frameImage) {
     return
   }
+  const scale = getFrameOverlayScale(frameId)
+  const drawWidth = width * scale
+  const drawHeight = height * scale
+  const offsetX = (width - drawWidth) / 2
+  const offsetY = (height - drawHeight) / 2
 
-  if (frameId === 'classic') {
-    context.save()
-    context.strokeStyle = '#fff3d2'
-    context.lineWidth = 14
-    context.strokeRect(7, 7, width - 14, height - 14)
-    context.strokeStyle = '#bf9868'
-    context.lineWidth = 2
-    context.strokeRect(20, 20, width - 40, height - 40)
-    context.restore()
-    return
+  context.drawImage(frameImage, offsetX, offsetY, drawWidth, drawHeight)
+}
+
+function getCoverCropRect(
+  sourceWidth: number,
+  sourceHeight: number,
+  targetAspectRatio: number,
+) {
+  const sourceAspectRatio = sourceWidth / sourceHeight
+
+  if (sourceAspectRatio > targetAspectRatio) {
+    const cropWidth = sourceHeight * targetAspectRatio
+
+    return {
+      height: sourceHeight,
+      width: cropWidth,
+      x: (sourceWidth - cropWidth) / 2,
+      y: 0,
+    }
   }
 
-  if (frameId === 'ribbon') {
-    context.save()
-    context.fillStyle = '#ffc4dd'
-    context.fillRect(0, 0, width, 18)
-    context.fillRect(0, height - 18, width, 18)
-    context.fillStyle = '#ffd3e5'
-    context.fillRect(0, 0, 18, height)
-    context.fillRect(width - 18, 0, 18, height)
-    context.restore()
-    return
-  }
+  const cropHeight = sourceWidth / targetAspectRatio
 
-  context.save()
-  context.strokeStyle = 'rgba(255,255,255,0.8)'
-  context.lineWidth = 2
-  context.strokeRect(18, 18, width - 36, height - 36)
-  context.fillStyle = 'rgba(255,255,255,0.92)'
-  context.beginPath()
-  context.arc(34, 34, 6, 0, Math.PI * 2)
-  context.fill()
-  context.fillStyle = 'rgba(255,246,199,0.95)'
-  context.beginPath()
-  context.arc(width - 38, height - 38, 4, 0, Math.PI * 2)
-  context.fill()
-  context.restore()
+  return {
+    height: cropHeight,
+    width: sourceWidth,
+    x: 0,
+    y: (sourceHeight - cropHeight) / 2,
+  }
 }

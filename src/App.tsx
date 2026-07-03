@@ -13,6 +13,7 @@ function App() {
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null)
   const [selectedTool, setSelectedTool] = useState<CameraTool>('filter')
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const frameOverlayRef = useRef<HTMLImageElement | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const camera = useCamera(videoRef)
   const gesture = useGestureDetection(
@@ -36,6 +37,7 @@ function App() {
 
     const nextPhotoDataUrl = capturePhoto({
       canvas: canvasRef.current,
+      frameImage: frameOverlayRef.current,
       frameId,
       photoFilterId,
       isBlurred,
@@ -47,20 +49,23 @@ function App() {
 
   return (
     <main className="min-h-screen bg-[#f5f6fa] px-4 py-5 text-[#49516a] sm:px-6">
-      <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-4 lg:grid-cols-[minmax(0,4fr)_minmax(11rem,1fr)]">
-        <CameraView
-          error={camera.error ?? gesture.gestureError}
-          frameId={frameId}
-          isBlurred={isBlurred}
-          isLoading={camera.isLoading || gesture.isModelLoading}
-          onRetry={() => {
-            void camera.startCamera()
-          }}
-          photoFilterId={photoFilterId}
-          permissionState={camera.permissionState}
-          photoDataUrl={photoDataUrl}
-          videoRef={videoRef}
-        />
+      <div className="mx-auto grid min-h-screen max-w-[1040px] items-center gap-4 lg:grid-cols-[minmax(0,1fr)_8.5rem] lg:gap-14 xl:max-w-[970px] xl:grid-cols-[760px_9rem] xl:justify-center xl:gap-24">
+        <div className="w-full xl:w-[760px]">
+          <CameraView
+            error={camera.error ?? gesture.gestureError}
+            frameId={frameId}
+            frameOverlayRef={frameOverlayRef}
+            isBlurred={isBlurred}
+            isLoading={camera.isLoading || gesture.isModelLoading}
+            onRetry={() => {
+              void camera.startCamera()
+            }}
+            photoFilterId={photoFilterId}
+            permissionState={camera.permissionState}
+            photoDataUrl={photoDataUrl}
+            videoRef={videoRef}
+          />
+        </div>
         <CameraControls
           captureDisabled={
             photoDataUrl !== null ||

@@ -2,39 +2,20 @@ import { describe, expect, it, vi } from 'vitest'
 import { capturePhoto } from '../capturePhoto'
 
 type MockContext = {
-  beginPath: ReturnType<typeof vi.fn>
   drawImage: ReturnType<typeof vi.fn>
-  fill: ReturnType<typeof vi.fn>
-  fillRect: ReturnType<typeof vi.fn>
   restore: ReturnType<typeof vi.fn>
   save: ReturnType<typeof vi.fn>
   scale: ReturnType<typeof vi.fn>
   set filter(value: string)
-  set fillStyle(value: string)
-  set lineWidth(value: number)
-  set shadowBlur(value: number)
-  set shadowColor(value: string)
-  set strokeStyle(value: string)
-  strokeRect: ReturnType<typeof vi.fn>
   translate: ReturnType<typeof vi.fn>
-  arc: ReturnType<typeof vi.fn>
 }
 
 function createMockCanvas() {
   let filterValue = 'none'
   const filterHistory: string[] = []
-  let fillStyleValue = ''
-  const fillStyleHistory: string[] = []
-  let strokeStyleValue = ''
-  const strokeStyleHistory: string[] = []
-  let lineWidthValue = 0
 
   const context: MockContext = {
-    arc: vi.fn(),
-    beginPath: vi.fn(),
     drawImage: vi.fn(),
-    fill: vi.fn(),
-    fillRect: vi.fn(),
     restore: vi.fn(),
     save: vi.fn(),
     scale: vi.fn(),
@@ -42,20 +23,6 @@ function createMockCanvas() {
       filterValue = value
       filterHistory.push(value)
     },
-    set fillStyle(value: string) {
-      fillStyleValue = value
-      fillStyleHistory.push(value)
-    },
-    set lineWidth(value: number) {
-      lineWidthValue = value
-    },
-    set shadowBlur(_value: number) {},
-    set shadowColor(_value: string) {},
-    set strokeStyle(value: string) {
-      strokeStyleValue = value
-      strokeStyleHistory.push(value)
-    },
-    strokeRect: vi.fn(),
     translate: vi.fn(),
   }
 
@@ -71,11 +38,6 @@ function createMockCanvas() {
     context,
     getFilter: () => filterValue,
     getFilterHistory: () => filterHistory,
-    getFillStyle: () => fillStyleValue,
-    getFillStyleHistory: () => fillStyleHistory,
-    getLineWidth: () => lineWidthValue,
-    getStrokeStyle: () => strokeStyleValue,
-    getStrokeStyleHistory: () => strokeStyleHistory,
   }
 }
 
@@ -89,18 +51,29 @@ describe('capturePhoto', () => {
 
     const result = capturePhoto({
       canvas,
+      frameImage: null,
       frameId: 'none',
       photoFilterId: 'clean',
       isBlurred: false,
       video,
     })
 
-    expect(canvas.width).toBe(1280)
+    expect(canvas.width).toBe(1152)
     expect(canvas.height).toBe(720)
     expect(context.save).toHaveBeenCalledTimes(1)
-    expect(context.translate).toHaveBeenCalledWith(1280, 0)
+    expect(context.translate).toHaveBeenCalledWith(1152, 0)
     expect(context.scale).toHaveBeenCalledWith(-1, 1)
-    expect(context.drawImage).toHaveBeenCalledWith(video, 0, 0, 1280, 720)
+    expect(context.drawImage).toHaveBeenCalledWith(
+      video,
+      64,
+      0,
+      1152,
+      720,
+      0,
+      0,
+      1152,
+      720,
+    )
     expect(context.restore).toHaveBeenCalledTimes(1)
     expect(getFilter()).toBe('none')
     expect(result).toBe('data:image/jpeg;base64,photo')
@@ -115,6 +88,7 @@ describe('capturePhoto', () => {
 
     capturePhoto({
       canvas,
+      frameImage: null,
       frameId: 'none',
       photoFilterId: 'dream',
       isBlurred: true,
@@ -126,34 +100,58 @@ describe('capturePhoto', () => {
       'none',
     ])
     expect(getFilter()).toBe('none')
-    expect(context.drawImage).toHaveBeenCalledWith(video, 0, 0, 640, 640)
+    expect(canvas.width).toBe(640)
+    expect(canvas.height).toBe(400)
+    expect(context.drawImage).toHaveBeenCalledWith(
+      video,
+      0,
+      120,
+      640,
+      400,
+      0,
+      0,
+      640,
+      400,
+    )
   })
 
   it('draws the selected frame on top of the captured photo', () => {
-    const {
-      canvas,
-      context,
-      getLineWidth,
-      getStrokeStyle,
-      getStrokeStyleHistory,
-    } = createMockCanvas()
+    const { canvas, context } = createMockCanvas()
     const video = {
-      videoHeight: 960,
-      videoWidth: 960,
+      videoHeight: 623,
+      videoWidth: 1013,
     } as HTMLVideoElement
+    const frameImage = { tagName: 'IMG' } as unknown as HTMLImageElement
 
     capturePhoto({
       canvas,
+      frameImage,
       frameId: 'classic',
       photoFilterId: 'clean',
       isBlurred: false,
       video,
     })
 
-    expect(context.strokeRect).toHaveBeenCalledWith(7, 7, 946, 946)
-    expect(getLineWidth()).toBe(2)
-    expect(getStrokeStyle()).toBe('#bf9868')
-    expect(getStrokeStyleHistory()[0]).toBe('#fff3d2')
-    expect(getStrokeStyleHistory()).toContain('#fff3d2')
+    expect(canvas.width).toBe(1013)
+    expect(canvas.height).toBe(623)
+    expect(context.drawImage).toHaveBeenNthCalledWith(
+      1,
+      video,
+      0,
+      0,
+      1013,
+      623,
+      0,
+      0,
+      1013,
+      623,
+    )
+    const frameDrawCall = context.drawImage.mock.calls[1]
+
+    expect(frameDrawCall?.[0]).toBe(frameImage)
+    expect(frameDrawCall?.[1]).toBeCloseTo(-151.95)
+    expect(frameDrawCall?.[2]).toBeCloseTo(-93.45)
+    expect(frameDrawCall?.[3]).toBeCloseTo(1316.9)
+    expect(frameDrawCall?.[4]).toBeCloseTo(809.9)
   })
 })
